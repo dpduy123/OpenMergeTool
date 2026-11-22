@@ -6,6 +6,7 @@ Small command-line tools for merging files:
 |---|---|---|
 | [Merge_JPG.py](Merge_JPG.py) | 2 JPG images, side by side or top to bottom | `output/<job_id>/merged.jpg` |
 | [Merge_PDF.py](Merge_PDF.py) | 2 or more PDFs, pages one after another | `output/<job_id>/merged.pdf` |
+| [Convert_JPG_to_PDF.py](Convert_JPG_to_PDF.py) | 1 or more JPGs into a PDF, one page per image | `output/<job_id>/converted.pdf` |
 
 ## Requirements
 
@@ -26,6 +27,7 @@ Each run writes to its own folder:
 ```
 output/<job_id>/merged.jpg
 output/<job_id>/merged.pdf
+output/<job_id>/converted.pdf
 ```
 
 - If you don't give a job ID, one is generated from the date, time and a random code, for example `20261122_111555_e7c13676`.
@@ -113,12 +115,57 @@ python3 Merge_PDF.py a.pdf locked.pdf --password secret
 
 ---
 
+## Convert JPG to PDF
+
+```bash
+python3 Convert_JPG_to_PDF.py <image1.jpg> [image2.jpg ...] [options]
+```
+
+Each image becomes one page, in the order given. If you give no paths, the script asks for one.
+
+| Option | Default | Description |
+|---|---|---|
+| `-s`, `--page-size` | `image` | `image` (each page matches its image), `a4` or `letter` |
+| `-m`, `--margin` | `36` | Margin in points for `a4`/`letter` (72 pt = 1 inch) |
+| `--dpi` | `150` | Resolution (36–1200). In `image` mode it sets the printed page size; in `a4`/`letter` mode it sets image sharpness |
+| `-j`, `--job-id` | auto | Name of the output subfolder |
+| `-o`, `--output-dir` | `output` | Base output folder |
+
+```bash
+# One image
+python3 Convert_JPG_to_PDF.py scan.jpg
+
+# Several images on A4 pages
+python3 Convert_JPG_to_PDF.py page1.jpg page2.jpg page3.jpg --page-size a4 --job-id scans
+
+# No margin, higher resolution
+python3 Convert_JPG_to_PDF.py photo.jpg -s a4 -m 0 --dpi 300
+```
+
+**How pages are laid out**
+
+- **`image` mode:** the page is exactly the image's size at the chosen DPI. For example, a 1500×1000 px image at 150 DPI gives a 10×6.7 inch page.
+- **`a4` / `letter` mode:** the image is scaled to fit inside the margins and centred on a white page. Landscape images get a landscape page.
+- **Rotation:** photos are turned the right way up using their EXIF orientation.
+- **Quality:** images are re-encoded as JPEG inside the PDF, so there is a small quality loss.
+
+**Input checks**
+
+- At least 1 file is required, and no path may be empty.
+- Each path must exist, have a `.jpg`/`.jpeg` extension, and contain real JPEG data, so renamed files are rejected.
+- DPI must be 36–1200, the margin can't be negative or too large for the page, and the job ID may only contain letters, digits, `_` and `-`.
+- On any error the script prints `Error: ...` and exits with code 1.
+
+---
+
 ## Use from Python
 
 ```python
 from Merge_JPG import run as merge_jpg
 from Merge_PDF import run as merge_pdf
+from Convert_JPG_to_PDF import run as jpg_to_pdf
 
 merge_jpg("a.jpg", "b.jpg", direction="vertical", job_id="job42")
 merge_pdf(["a.pdf", "b.pdf", "c.pdf"], job_id="job43")
+jpg_to_pdf(["p1.jpg", "p2.jpg"], page_size="a4", job_id="job44")
 ```
