@@ -1,0 +1,6 @@
+# Merged images
+output/
+
+# Python
+__pycache__/
+*.pyc
